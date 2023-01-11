@@ -1,47 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
-import initial from '../data.json';
 import Filter from './Filter/Filter';
 import ContactList from './ContactList/ContactList';
 import ContactForm from './ContactForm/ContactForm';
 import Wrapper from './Wrapper/Wrapper.styled';
 import { MainHeading, SecondaryHeading } from './Heading/Heading.styled';
-
-const LS_KEY = 'contacts';
+import { useSelector, useDispatch } from 'react-redux';
+import { deleteContacts, updateContacts } from 'redux/contacts/contactsSlice';
+import { updateFilter } from 'redux/filter/filterSlice';
 
 export function App() {
-  const [contacts, setContacts] = useState(initial);
-  const [filter, setFilter] = useState('');
-
-  // debugger;
-  // useEffect работает максимально не корректно, на первом рендере обновляет LocalStorag всегда массивом initial
-
-  // ????????????????????????????????
-  const firstRender = useRef(true);
-  // ????????????????????????????????
-
-  useEffect(() => {
-    console.log('useEffect mount');
-    const parsedContacts = JSON.parse(localStorage.getItem(LS_KEY));
-    if (parsedContacts?.length > 0) {
-      console.log(parsedContacts);
-
-      setContacts(parsedContacts);
-
-      // console.log(contacts);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-    } else {
-      console.log('useEffect update');
-      // console.log(contacts);
-
-      localStorage.setItem(LS_KEY, JSON.stringify(contacts));
-    }
-  }, [contacts]);
+  const contacts = useSelector(state => state.contacts.content);
+  const filter = useSelector(state => state.filter.filter);
+  const dispatch = useDispatch();
 
   const handelSubmit = e => {
     e.preventDefault();
@@ -54,16 +24,13 @@ export function App() {
       contact.number.trim().includes(newNumber.trim())
     );
 
-    const newContact = [
-      {
-        id: nanoid(),
-        name: newName,
-        number: newNumber,
-      },
-    ];
-
+    const newContact = {
+      id: nanoid(),
+      name: newName,
+      number: newNumber,
+    };
     if (!findeName && !findeNumber) {
-      setContacts(prevContacts => [...prevContacts, ...newContact]);
+      dispatch(updateContacts(newContact));
       e.target.reset();
     } else {
       alert(`${newName} is already in contacts`);
@@ -72,16 +39,15 @@ export function App() {
 
   const handleChange = e => {
     const value = e.target.value;
-    setFilter(value);
+
+    dispatch(updateFilter(value));
   };
 
   const daleteContact = contactId => {
-    setContacts(prevContacts =>
-      prevContacts.filter(contact => contact.id !== contactId)
-    );
+    dispatch(deleteContacts(contactId));
   };
 
-  const normalizedFilter = filter.toLocaleLowerCase();
+  const normalizedFilter = filter.toLowerCase();
   const visibleContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(normalizedFilter)
   );
